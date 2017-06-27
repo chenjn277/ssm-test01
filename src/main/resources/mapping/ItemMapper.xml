@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="org.gb.dao.ItemMapper" >
+  <resultMap id="BaseResultMap" type="org.gb.vo.Item" >
+    <id column="ID" property="id" jdbcType="INTEGER" />
+    <result column="TITLE" property="title" jdbcType="VARCHAR" />
+    <result column="SELL_POINT" property="sellPoint" jdbcType="VARCHAR" />
+    <result column="PRICE" property="price" jdbcType="INTEGER" />
+    <result column="NUM" property="num" jdbcType="INTEGER" />
+    <result column="BARCODE" property="barcode" jdbcType="VARCHAR" />
+    <result column="IMAGE" property="image" jdbcType="VARCHAR" />
+    <result column="CID" property="cid" jdbcType="INTEGER" />
+    <result column="STATUS" property="status" jdbcType="INTEGER" />
+    <result column="CREATED" property="created" jdbcType="TIMESTAMP" />
+    <result column="UPDATED" property="updated" jdbcType="TIMESTAMP" />
+  </resultMap>
+
+
+  <resultMap id="ItemToCat" type="org.gb.vo.Item" >
+    <id column="zid" property="id" jdbcType="INTEGER" />
+    <result column="ztitle" property="title" jdbcType="VARCHAR" />
+    <result column="zSELLPOINT" property="sellPoint" jdbcType="VARCHAR" />
+    <result column="zPRICE" property="price" jdbcType="INTEGER" />
+    <result column="zNUM" property="num" jdbcType="INTEGER" />
+    <result column="zBARCODE" property="barcode" jdbcType="VARCHAR" />
+    <result column="zIMAGE" property="image" jdbcType="VARCHAR" />
+    <result column="zCID" property="cid" jdbcType="INTEGER" />
+    <result column="zSTATUS" property="status" jdbcType="INTEGER" />
+    <result column="zCREATED" property="created" jdbcType="TIMESTAMP" />
+    <result column="zUPDATED" property="updated" jdbcType="TIMESTAMP" />
+
+    <association property="cat" javaType="org.gb.vo.ItemCat">
+      <result column="tid" property="id" jdbcType="INTEGER"></result>
+      <result column="tname" property="name" jdbcType="VARCHAR"></result>
+    </association>
+  </resultMap>
+  <sql id="Base_Column_List" >
+    ID, TITLE, SELL_POINT, PRICE, NUM, BARCODE, IMAGE, CID, STATUS, CREATED, UPDATED
+  </sql>
+
+  <sql id="columnList" >
+    z.id as zid, z.TITLE as ztitle, z.SELL_POINT as zsellpoint,
+    z.PRICE as zprice, z.NUM as znum, z.BARCODE as zbarcode,
+    z.IMAGE as zimage,z.STATUS as zstatus,z.CREATED as zcreated,
+    z.UPDATED as zupdated,z.CID as zcid,t.id as tid,t.name as tname
+  </sql>
+
+  <!--逻辑删除-->
+  <update id="deleteLogic" parameterType="org.gb.vo.Item">
+    update tb_item set status=3 where id = #{id}
+  </update>
+
+  <!--根据id逻辑删除-->
+  <!--<update id="deleteLogicItem" parameterType="org.me.vo.Item">
+    update zx_item set status = 3 where id = #{id}
+  </update>-->
+
+
+
+  <!--批量删除-->
+ <delete id="deleteItemMany" parameterType="java.util.ArrayList">
+   DELETE from  tb_item where id in
+   <foreach collection="list" open="(" close=")" index="i" item="a" separator=",">
+     #{a}
+   </foreach>
+ </delete>
+
+
+
+
+  <!--逻辑批量-->
+  <update id="deleteLogicMany" parameterType="java.util.ArrayList">
+    BEGIN
+    <foreach collection="list" separator=";" item="item">
+      UPDATE tb_item set status =3 where id=#{item}
+    </foreach>
+    ;END ;
+  </update>
+
+
+
+
+  <!--6月16日做接口的项目=====================================================-->
+  <!--分页条件总条数-->
+  <!--条件查询的总条数-->
+  <select id="selectItemCount" resultType="java.lang.Integer" parameterType="org.gb.util.PageUtil">
+    SELECT COUNT (id) FROM tb_item
+    <where>
+      <if test="whereMap.title!=null and whereMap.title!=''">
+        and title like '%${whereMap.title}%'
+      </if>
+      <if test="whereMap.cid!=null and whereMap.cid!=''">
+        and cid = #{whereMap.cid}
+      </if>
+    </where>
+  </select>
+
+
+  <!--item cat两表联查-->
+  <!--分页条件查询-->
+  <select id="selectItem" resultMap="ItemToCat" parameterType="org.gb.util.PageUtil">
+    select b.* from(
+    select a.*,rownum r from
+    (select
+    <include refid="columnList"></include>
+    from
+    tb_item z left join tb_item_cat t on z.cid=t.id
+    <where>
+      <trim prefixOverrides="and">
+        <if test="whereMap.title!=null and whereMap.title!=''">
+          and title like '%${whereMap.title}%'
+        </if>
+        <if test="whereMap.cid!=null and whereMap.cid!=''">
+          and cid = #{whereMap.cid}
+        </if>
+      </trim>
+    </where>
+    ORDER BY z.id ${order}) a
+    where rownum &lt;=#{end}) b
+    where r &gt;#{start}
+  </select>
+
+
+  <delete id="deleteById" parameterType="org.gb.vo.Item" >
+    delete from tb_ITEM
+    where ID = #{id}
+  </delete>
+
+
+
+
+
+
+
+
+
+
+
+
+  <!--item cat两表联查-->
+  <!--条件查询-->
+  <select id="selectItemWhere" resultMap="ItemToCat" parameterType="org.gb.vo.Item">
+    select
+    <include refid="columnList"></include>
+    from
+    tb_item z left join tb_item_cat t
+    on z.cid=t.id
+    <where>
+      <trim prefixOverrides="and">
+        <if test="title!=null and title!=''">
+          <!-- and u_name=#{name} -->
+          and z.title like '%${title}%'
+        </if>
+        <if test="cid!=null and cid!=''">
+          and z.cid = #{cid}
+        </if>
+      </trim>
+    </where>
+    ORDER BY z.id ${order}
+  </select>
+
+
+  <!--批删除-->
+  <delete id="deleteItemById" parameterType="java.util.ArrayList" >
+    delete from tb_item where id in
+    <foreach collection="list" open="(" close=")" index="i" item="a" separator=",">
+      #{a}
+    </foreach>
+  </delete>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap" parameterType="java.lang.Integer" >
+    select
+    <include refid="Base_Column_List" />
+    from tb_ITEM
+    where ID = #{id,jdbcType=INTEGER}
+  </select>
+  <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer" >
+    delete from tb_ITEM
+    where ID = #{id,jdbcType=INTEGER}
+  </delete>
+  <insert id="insert" parameterType="org.gb.vo.Item" >
+    insert into tb_ITEM (ID, TITLE, SELL_POINT,
+      PRICE, NUM, BARCODE,
+      IMAGE, CID, STATUS,
+      CREATED, UPDATED)
+    values (#{id,jdbcType=INTEGER}, #{title,jdbcType=VARCHAR}, #{sellPoint,jdbcType=VARCHAR},
+      #{price,jdbcType=INTEGER}, #{num,jdbcType=INTEGER}, #{barcode,jdbcType=VARCHAR},
+      #{image,jdbcType=VARCHAR}, #{cid,jdbcType=INTEGER}, #{status,jdbcType=INTEGER},
+      #{created,jdbcType=TIMESTAMP}, #{updated,jdbcType=TIMESTAMP})
+  </insert>
+  <insert id="insertSelective" parameterType="org.gb.vo.Item" >
+    <selectKey keyColumn="id" keyProperty="id" resultType="java.lang.Integer" order="BEFORE">
+      select seq_item_id.nextval as id from dual
+    </selectKey>
+
+    insert into tb_ITEM
+    <trim prefix="(" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        ID,
+      </if>
+      <if test="title != null" >
+        TITLE,
+      </if>
+      <if test="sellPoint != null" >
+        SELL_POINT,
+      </if>
+      <if test="price != null" >
+        PRICE,
+      </if>
+      <if test="num != null" >
+        NUM,
+      </if>
+      <if test="barcode != null" >
+        BARCODE,
+      </if>
+      <if test="image != null" >
+        IMAGE,
+      </if>
+      <if test="cid != null" >
+        CID,
+      </if>
+      <if test="status != null" >
+        STATUS,
+      </if>
+      <if test="created != null" >
+        CREATED,
+      </if>
+      <if test="updated != null" >
+        UPDATED,
+      </if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides="," >
+      <if test="id != null" >
+        #{id,jdbcType=INTEGER},
+      </if>
+      <if test="title != null" >
+        #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="sellPoint != null" >
+        #{sellPoint,jdbcType=VARCHAR},
+      </if>
+      <if test="price != null" >
+        #{price,jdbcType=INTEGER},
+      </if>
+      <if test="num != null" >
+        #{num,jdbcType=INTEGER},
+      </if>
+      <if test="barcode != null" >
+        #{barcode,jdbcType=VARCHAR},
+      </if>
+      <if test="image != null" >
+        #{image,jdbcType=VARCHAR},
+      </if>
+      <if test="cid != null" >
+        #{cid,jdbcType=INTEGER},
+      </if>
+      <if test="status != null" >
+        #{status,jdbcType=INTEGER},
+      </if>
+      <if test="created != null" >
+        #{created,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updated != null" >
+        #{updated,jdbcType=TIMESTAMP},
+      </if>
+    </trim>
+  </insert>
+  <update id="updateByPrimaryKeySelective" parameterType="org.gb.vo.Item" >
+    update tb_ITEM
+    <set >
+      <if test="title != null" >
+        TITLE = #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="sellPoint != null" >
+        SELL_POINT = #{sellPoint,jdbcType=VARCHAR},
+      </if>
+      <if test="price != null" >
+        PRICE = #{price,jdbcType=INTEGER},
+      </if>
+      <if test="num != null" >
+        NUM = #{num,jdbcType=INTEGER},
+      </if>
+      <if test="barcode != null" >
+        BARCODE = #{barcode,jdbcType=VARCHAR},
+      </if>
+      <if test="image != null" >
+        IMAGE = #{image,jdbcType=VARCHAR},
+      </if>
+      <if test="cid != null" >
+        CID = #{cid,jdbcType=INTEGER},
+      </if>
+      <if test="status != null" >
+        STATUS = #{status,jdbcType=INTEGER},
+      </if>
+      <if test="created != null" >
+        CREATED = #{created,jdbcType=TIMESTAMP},
+      </if>
+      <if test="updated != null" >
+        UPDATED = #{updated,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateByPrimaryKey" parameterType="org.gb.vo.Item" >
+    update tb_ITEM
+    set TITLE = #{title,jdbcType=VARCHAR},
+      SELL_POINT = #{sellPoint,jdbcType=VARCHAR},
+      PRICE = #{price,jdbcType=INTEGER},
+      NUM = #{num,jdbcType=INTEGER},
+      BARCODE = #{barcode,jdbcType=VARCHAR},
+      IMAGE = #{image,jdbcType=VARCHAR},
+      CID = #{cid,jdbcType=INTEGER},
+      STATUS = #{status,jdbcType=INTEGER},
+      CREATED = #{created,jdbcType=TIMESTAMP},
+      UPDATED = #{updated,jdbcType=TIMESTAMP}
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+</mapper>
